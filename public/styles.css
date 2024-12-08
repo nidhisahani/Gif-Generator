@@ -1,0 +1,99 @@
+/* Basic styles for the upload form */
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: #f4f4f9;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    flex-direction: column; /* Column layout */
+}
+
+h1 {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+#upload-form {
+    display: flex;
+    flex-direction: column; /* Stack form elements vertically */
+    align-items: center; /* Center form elements */
+    margin-bottom: 20px;
+}
+
+label {
+    font-size: 16px;
+    margin-bottom: 10px;
+}
+
+input[type="file"] {
+    padding: 10px;
+    border: 1px solid #ccc;
+    margin-bottom: 20px;
+    max-width: 300px; /* Set a max width for input */
+}
+
+button {
+    padding: 10px 20px;
+    background-color: #28a745;
+    color: white;
+    border: none;
+    cursor: pointer;
+    margin-bottom: 10px; /* Space between buttons */
+    max-width: 300px;
+}
+
+button:disabled {
+    background-color: #ccc;
+    cursor: not-allowed;
+}
+
+#generate-gif-btn {
+    padding: 10px 20px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    cursor: pointer;
+    margin-bottom: 20px;
+    max-width: 300px;
+}
+
+#download-link {
+    margin-top: 20px;
+    padding: 10px 20px;
+    background-color: #ffc107;
+    color: white;
+    text-decoration: none;
+    border-radius: 5px;
+    display: none;
+}
+
+#download-link:hover {
+    background-color: #e0a800;
+}
+
+/* Make the entire form take the full height and center elements */
+.container {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+}
+
+#capture-container {
+    margin-top: 20px;
+}
+
+video {
+    max-width: 100%;
+    border: 1px solid #ccc;
+}
+
+#captured-image {
+    margin-top: 10px;
+    max-width: 100%;
+    display: none;
+}

@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upload and Capture Images</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+    <div class="container">
+        <h1>Gif Generator</h1>
+
+        <!-- Form for file upload -->
+        <form id="upload-form" enctype="multipart/form-data">
+            <label for="file-input">Choose Images:</label>
+            <input type="file" id="file-input" name="images" multiple accept=".png, .jpg, .jpeg">
+
+            <div id="capture-container">
+                <label>Capture Image:</label>
+                <video id="video" width="320" height="240" autoplay></video>
+                <button type="button" id="capture-btn">Capture</button>
+                <canvas id="canvas" style="display: none;"></canvas>
+                <img id="captured-image" style="max-width: 100%; margin-top: 10px; display: none;" />
+            </div>
+
+            <button type="button" id="upload-btn">Upload Images</button>
+        </form>
+
+        <button id="generate-gif-btn" disabled>Generate GIF</button>
+        <a id="download-link" style="display: none;" download="output.gif">Download GIF</a>
+    </div>
+
+    <script>
+        const uploadBtn = document.getElementById('upload-btn');
+        const generateGifBtn = document.getElementById('generate-gif-btn');
+        const fileInput = document.getElementById('file-input');
+        const captureBtn = document.getElementById('capture-btn');
+        const videoElement = document.getElementById('video');
+        const canvasElement = document.getElementById('canvas');
+        const capturedImage = document.getElementById('captured-image');
+        const downloadLink = document.getElementById('download-link');
+
+        // Access the webcam and display the video
+        async function startVideo() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                videoElement.srcObject = stream;
+            } catch (error) {
+                alert('Could not access webcam: ' + error);
+            }
+        }
+
+        // Capture image from video stream
+        captureBtn.addEventListener('click', () => {
+            const context = canvasElement.getContext('2d');
+            canvasElement.width = videoElement.videoWidth;
+            canvasElement.height = videoElement.videoHeight;
+            context.drawImage(videoElement, 0, 0, canvasElement.width, canvasElement.height);
+
+            // Show the captured image
+            const imageUrl = canvasElement.toDataURL('image/png');
+            capturedImage.src = imageUrl;
+            capturedImage.style.display = 'block';
+        });
+
+        // Upload images including the captured one
+        uploadBtn.addEventListener('click', async () => {
+            const formData = new FormData();
+            for (const file of fileInput.files) {
+                formData.append('images', file);
+            }
+
+            if (capturedImage.style.display === 'block') {
+                const imageData = dataURLtoFile(capturedImage.src, 'captured-image.png');
+                formData.append('images', imageData);
+            }
+
+            try {
+                const response = await fetch('/api/upload-images', {
+                    method: 'POST',
+                    body: formData,
+                });
+
+                if (response.ok) {
+                    alert('Images uploaded successfully!');
+                    generateGifBtn.disabled = false; // Enable Generate GIF button
+                } else {
+                    const errorMessage = await response.text();
+                    alert(`Error: ${errorMessage}`);
+                }
+            } catch (error) {
+                console.error('Upload failed:', error);
+                alert('Upload failed. Please try again.');
+            }
+        });
+
+        // Convert Data URL to File object
+        function dataURLtoFile(dataURL, filename) {
+            let arr = dataURL.split(','), // Use 'let' for reassignable variables
+                mime = arr[0].match(/:(.*?);/)[1],
+                bstr = atob(arr[1]),
+                n = bstr.length,
+                u8arr = new Uint8Array(n);
+
+            while (n--) {
+                u8arr[n] = bstr.charCodeAt(n);
+            }
+
+            return new File([u8arr], filename, { type: mime });
+        }
+
+        // Generate GIF from uploaded images
+        generateGifBtn.addEventListener('click', async () => {
+            try {
+                const response = await fetch('/api/generate-gif');
+
+                if (response.ok) {
+                    const data = await response.json();
+                    alert(data.message);
+
+                    // Show download link
+                    downloadLink.href = data.downloadPath;
+                    downloadLink.style.display = 'inline';
+                } else {
+                    const errorMessage = await response.text();
+                    alert(`Error: ${errorMessage}`);
+                }
+            } catch (error) {
+                console.error('GIF generation failed:', error);
+                alert('GIF generation failed. Please try again.');
+            }
+        });
+
+        // Start the video stream when the page loads
+        startVideo();
+    </script>
+</body>
+
+</html>
