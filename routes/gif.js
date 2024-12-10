@@ -6,6 +6,17 @@ const path = require('path');
 
 const router = express.Router();
 
+// Preload images asynchronously
+const preloadImages = async (files, uploadsPath) => {
+    return await Promise.all(
+        files.map(async (file) => {
+            const imagePath = path.join(uploadsPath, file);
+            const image = await loadImage(imagePath);
+            return { file, image };
+        })
+    );
+};
+
 // Route for generating GIF
 router.get('/generate-gif', async (req, res) => {
     try {
@@ -21,8 +32,13 @@ router.get('/generate-gif', async (req, res) => {
             return res.status(400).send('Uploads folder does not exist!');
         }
 
-        // Get all image files (jpg and png)
-        const files = fs.readdirSync(uploadsPath).filter(file => file.endsWith('.jpg') || file.endsWith('.png') || file.endsWith('.jpeg'));
+        // Get all image files (jpg, png, jpeg)
+        const files = fs.readdirSync(uploadsPath).filter(
+            (file) =>
+                file.endsWith('.jpg') ||
+                file.endsWith('.png') ||
+                file.endsWith('.jpeg')
+        );
 
         if (files.length === 0) {
             return res.status(400).send('No images available to create GIF!');
@@ -31,6 +47,9 @@ router.get('/generate-gif', async (req, res) => {
         // Sort files by filename or any other criteria (e.g., timestamp)
         files.sort();
 
+        // Preload images
+        const preloadedImages = await preloadImages(files, uploadsPath);
+
         const stream = fs.createWriteStream(outputPath);
         encoder.createReadStream().pipe(stream);
         encoder.start();
@@ -38,11 +57,8 @@ router.get('/generate-gif', async (req, res) => {
         encoder.setDelay(500); // Frame delay in ms
         encoder.setQuality(10); // Image quality
 
-        // Loop through the files and add each image to the GIF
-        for (const file of files) {
-            const imagePath = path.join(uploadsPath, file);
-            const image = await loadImage(imagePath);
-
+        // Loop through the preloaded images and add each to the GIF
+        for (const { image } of preloadedImages) {
             // Resize image if necessary
             const width = 800;
             const height = 600;
@@ -64,7 +80,6 @@ router.get('/generate-gif', async (req, res) => {
             console.error('Error generating GIF:', err);
             res.status(500).send('Failed to generate GIF');
         });
-
     } catch (error) {
         console.error('Error:', error.message);
         res.status(500).send('Error during GIF generation');
