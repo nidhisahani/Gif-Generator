@@ -3,9 +3,11 @@ const path = require('path');
 const fs = require('fs');
 const multer = require('multer');
 const gifRouter = require('./routes/gif');
+const dotenv=require('dotenv');
+dotenv.config();
 
 const app = express();
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 
 // Middleware for static files
 app.use(express.static(path.join(__dirname, 'public')));
