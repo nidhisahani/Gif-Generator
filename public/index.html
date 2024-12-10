@@ -6,11 +6,45 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Upload and Capture Images</title>
     <link rel="stylesheet" href="styles.css">
+    <style>
+        /* Loader styles */
+        .loader {
+            border: 8px solid #f3f3f3;
+            border-top: 8px solid #3498db;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            display: none;
+            margin: 20px auto;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        #loader-container {
+            display: none;
+            text-align: center;
+        }
+    </style>
 </head>
 
 <body>
     <div class="container">
-        <h1>Gif Generator</h1>
+        <h1>GIF Generator</h1>
+
+        <!-- Loader -->
+        <div id="loader-container">
+            <div class="loader"></div>
+            <p>Processing... Please wait</p>
+        </div>
 
         <!-- Form for file upload -->
         <form id="upload-form" enctype="multipart/form-data">
@@ -19,13 +53,13 @@
 
             <div id="capture-container">
                 <label>Capture Image:</label>
-                <video id="video" width="320" height="240" autoplay></video>
+                <video id="video" autoplay muted></video>
                 <button type="button" id="capture-btn">Capture</button>
-                <canvas id="canvas" style="display: none;"></canvas>
-                <img id="captured-image" style="max-width: 100%; margin-top: 10px; display: none;" />
+                <canvas id="canvas" hidden></canvas>
+                <img id="captured-image" hidden />
             </div>
 
-            <button type="button" id="upload-btn">Upload Images</button>
+            <button type="button" id="upload-btn" disabled>Upload Images</button>
         </form>
 
         <button id="generate-gif-btn" disabled>Generate GIF</button>
@@ -33,108 +67,120 @@
     </div>
 
     <script>
-        const uploadBtn = document.getElementById('upload-btn');
-        const generateGifBtn = document.getElementById('generate-gif-btn');
-        const fileInput = document.getElementById('file-input');
-        const captureBtn = document.getElementById('capture-btn');
-        const videoElement = document.getElementById('video');
-        const canvasElement = document.getElementById('canvas');
-        const capturedImage = document.getElementById('captured-image');
-        const downloadLink = document.getElementById('download-link');
+        document.addEventListener('DOMContentLoaded', () => {
+            const fileInput = document.getElementById('file-input');
+            const uploadBtn = document.getElementById('upload-btn');
+            const generateGifBtn = document.getElementById('generate-gif-btn');
+            const captureBtn = document.getElementById('capture-btn');
+            const videoElement = document.getElementById('video');
+            const canvasElement = document.getElementById('canvas');
+            const capturedImage = document.getElementById('captured-image');
+            const downloadLink = document.getElementById('download-link');
+            const loaderContainer = document.getElementById('loader-container');
 
-        // Access the webcam and display the video
-        async function startVideo() {
-            try {
-                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-                videoElement.srcObject = stream;
-            } catch (error) {
-                alert('Could not access webcam: ' + error);
-            }
-        }
+            // Show loader
+            const showLoader = () => {
+                loaderContainer.style.display = 'block';
+            };
 
-        // Capture image from video stream
-        captureBtn.addEventListener('click', () => {
-            const context = canvasElement.getContext('2d');
-            canvasElement.width = videoElement.videoWidth;
-            canvasElement.height = videoElement.videoHeight;
-            context.drawImage(videoElement, 0, 0, canvasElement.width, canvasElement.height);
+            // Hide loader
+            const hideLoader = () => {
+                loaderContainer.style.display = 'none';
+            };
 
-            // Show the captured image
-            const imageUrl = canvasElement.toDataURL('image/png');
-            capturedImage.src = imageUrl;
-            capturedImage.style.display = 'block';
-        });
-
-        // Upload images including the captured one
-        uploadBtn.addEventListener('click', async () => {
-            const formData = new FormData();
-            for (const file of fileInput.files) {
-                formData.append('images', file);
-            }
-
-            if (capturedImage.style.display === 'block') {
-                const imageData = dataURLtoFile(capturedImage.src, 'captured-image.png');
-                formData.append('images', imageData);
-            }
-
-            try {
-                const response = await fetch('/api/upload-images', {
-                    method: 'POST',
-                    body: formData,
-                });
-
-                if (response.ok) {
-                    alert('Images uploaded successfully!');
-                    generateGifBtn.disabled = false; // Enable Generate GIF button
-                } else {
-                    const errorMessage = await response.text();
-                    alert(`Error: ${errorMessage}`);
+            // Initialize webcam
+            const startVideo = async () => {
+                try {
+                    const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                    videoElement.srcObject = stream;
+                } catch (error) {
+                    alert('Webcam access error: ' + error.message);
                 }
-            } catch (error) {
-                console.error('Upload failed:', error);
-                alert('Upload failed. Please try again.');
-            }
-        });
+            };
 
-        // Convert Data URL to File object
-        function dataURLtoFile(dataURL, filename) {
-            let arr = dataURL.split(','), // Use 'let' for reassignable variables
-                mime = arr[0].match(/:(.*?);/)[1],
-                bstr = atob(arr[1]),
-                n = bstr.length,
-                u8arr = new Uint8Array(n);
+            // Enable upload button if files are selected
+            fileInput.addEventListener('change', () => {
+                uploadBtn.disabled = !fileInput.files.length;
+            });
 
-            while (n--) {
-                u8arr[n] = bstr.charCodeAt(n);
-            }
+            // Capture an image from the webcam
+            captureBtn.addEventListener('click', () => {
+                const context = canvasElement.getContext('2d');
+                canvasElement.width = videoElement.videoWidth;
+                canvasElement.height = videoElement.videoHeight;
 
-            return new File([u8arr], filename, { type: mime });
-        }
+                // Draw video frame to canvas
+                context.drawImage(videoElement, 0, 0);
+                capturedImage.src = canvasElement.toDataURL('image/png');
+                capturedImage.hidden = false;
 
-        // Generate GIF from uploaded images
-        generateGifBtn.addEventListener('click', async () => {
-            try {
-                const response = await fetch('/api/generate-gif');
+                uploadBtn.disabled = false;
+            });
 
-                if (response.ok) {
-                    const data = await response.json();
-                    alert(data.message);
+            // Upload images (including captured ones) to the server
+            uploadBtn.addEventListener('click', async () => {
+                const formData = new FormData();
 
-                    // Show download link
-                    downloadLink.href = data.downloadPath;
-                    downloadLink.style.display = 'inline';
-                } else {
-                    const errorMessage = await response.text();
-                    alert(`Error: ${errorMessage}`);
+                for (const file of fileInput.files) {
+                    formData.append('images', file);
                 }
-            } catch (error) {
-                console.error('GIF generation failed:', error);
-                alert('GIF generation failed. Please try again.');
-            }
-        });
 
-        // Start the video stream when the page loads
-        startVideo();
+                if (!capturedImage.hidden) {
+                    formData.append('images', dataURLtoFile(capturedImage.src, 'captured-image.png'));
+                }
+
+                showLoader(); // Show loader during upload
+
+                try {
+                    const response = await fetch('/api/upload-images', { method: 'POST', body: formData });
+                    if (response.ok) {
+                        alert('Images uploaded successfully!');
+                        generateGifBtn.disabled = false;
+                    } else {
+                        throw new Error(await response.text());
+                    }
+                } catch (error) {
+                    alert('Upload error: ' + error.message);
+                } finally {
+                    hideLoader(); // Hide loader after upload
+                }
+            });
+
+            // Generate GIF from uploaded images
+            generateGifBtn.addEventListener('click', async () => {
+                showLoader(); // Show loader during GIF generation
+                try {
+                    const response = await fetch('/api/generate-gif');
+                    if (response.ok) {
+                        const { message, downloadPath } = await response.json();
+                        alert(message);
+                        downloadLink.href = downloadPath;
+                        downloadLink.style.display = 'inline';
+                    } else {
+                        throw new Error(await response.text());
+                    }
+                } catch (error) {
+                    alert('GIF generation error: ' + error.message);
+                } finally {
+                    hideLoader(); // Hide loader after processing
+                }
+            });
+
+            // Convert Data URL to a File object
+            const dataURLtoFile = (dataURL, filename) => {
+                const [header, base64] = dataURL.split(',');
+                const mime = header.match(/:(.*?);/)[1];
+                const binary = atob(base64);
+                const array = new Uint8Array(binary.length);
+                for (let i = 0; i < binary.length; i++) {
+                    array[i] = binary.charCodeAt(i);
+                }
+                return new File([array], filename, { type: mime });
+            };
+
+            // Start video stream on page load
+            startVideo();
+        });
     </script>
 </body>
 

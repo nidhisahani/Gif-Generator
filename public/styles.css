@@ -94,6 +94,6 @@ video {
 
 #captured-image {
     margin-top: 10px;
-    max-width: 100%;
+    max-width: 50%;
     display: none;
 }

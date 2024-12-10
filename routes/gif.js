@@ -3,16 +3,20 @@ const GifEncoder = require('gifencoder');
 const { createCanvas, loadImage } = require('canvas');
 const fs = require('fs');
 const path = require('path');
+const sharp = require('sharp'); // Added for image resizing and optimization
 
 const router = express.Router();
 
-// Preload images asynchronously
-const preloadImages = async (files, uploadsPath) => {
+// Preload and optimize images using Sharp
+const preloadAndOptimizeImages = async (files, uploadsPath, width, height) => {
     return await Promise.all(
         files.map(async (file) => {
             const imagePath = path.join(uploadsPath, file);
-            const image = await loadImage(imagePath);
-            return { file, image };
+            const buffer = await sharp(imagePath)
+                .resize(width, height) // Resize to target dimensions
+                .toBuffer(); // Convert to buffer
+            const optimizedImage = await loadImage(buffer); // Load optimized image
+            return { file, optimizedImage };
         })
     );
 };
@@ -20,19 +24,21 @@ const preloadImages = async (files, uploadsPath) => {
 // Route for generating GIF
 router.get('/generate-gif', async (req, res) => {
     try {
-        const encoder = new GifEncoder(800, 600); // Set GIF dimensions
-        const canvas = createCanvas(800, 600);
+        const width = 800; // Target width for GIF
+        const height = 600; // Target height for GIF
+        const encoder = new GifEncoder(width, height);
+        const canvas = createCanvas(width, height);
         const ctx = canvas.getContext('2d');
 
         const uploadsPath = path.join(__dirname, '../public/uploads');
         const outputPath = path.join(uploadsPath, 'output.gif');
 
-        // Check if the uploads folder exists
+        // Validate uploads directory existence
         if (!fs.existsSync(uploadsPath)) {
             return res.status(400).send('Uploads folder does not exist!');
         }
 
-        // Get all image files (jpg, png, jpeg)
+        // Fetch image files (supported formats: jpg, png, jpeg)
         const files = fs.readdirSync(uploadsPath).filter(
             (file) =>
                 file.endsWith('.jpg') ||
@@ -44,12 +50,18 @@ router.get('/generate-gif', async (req, res) => {
             return res.status(400).send('No images available to create GIF!');
         }
 
-        // Sort files by filename or any other criteria (e.g., timestamp)
+        // Sort files by desired criteria
         files.sort();
 
-        // Preload images
-        const preloadedImages = await preloadImages(files, uploadsPath);
+        // Preload and optimize images
+        const preloadedImages = await preloadAndOptimizeImages(
+            files,
+            uploadsPath,
+            width,
+            height
+        );
 
+        // Initialize GIF stream
         const stream = fs.createWriteStream(outputPath);
         encoder.createReadStream().pipe(stream);
         encoder.start();
@@ -57,18 +69,16 @@ router.get('/generate-gif', async (req, res) => {
         encoder.setDelay(500); // Frame delay in ms
         encoder.setQuality(10); // Image quality
 
-        // Loop through the preloaded images and add each to the GIF
-        for (const { image } of preloadedImages) {
-            // Resize image if necessary
-            const width = 800;
-            const height = 600;
+        // Render preloaded images onto GIF
+        for (const { optimizedImage } of preloadedImages) {
             ctx.clearRect(0, 0, canvas.width, canvas.height); // Clear canvas
-            ctx.drawImage(image, 0, 0, width, height); // Resize to fit GIF dimensions
-            encoder.addFrame(ctx);
+            ctx.drawImage(optimizedImage, 0, 0, width, height); // Draw optimized image
+            encoder.addFrame(ctx); // Add to GIF
         }
 
         encoder.finish();
 
+        // Handle GIF generation completion
         stream.on('close', () => {
             res.json({
                 message: 'GIF generated successfully!',
