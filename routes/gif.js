@@ -21,6 +21,22 @@ router.get('/generate-gif', async (req, res) => {
             return res.status(400).send('Uploads folder does not exist!');
         }
 
+        /* Clear existing files in the uploads folder */
+        const existingFiles = fs.readdirSync(uploadsPath);
+        existingFiles.forEach(file => fs.unlinkSync(path.join(uploadsPath, file)));
+
+        // Validate if new images are uploaded (replace this logic with your upload process)
+        // For example, verify req.files if using multer or any file upload middleware.
+        const uploadedImages = ['example1.jpg', 'example2.png']; // Example images
+        if (uploadedImages.length === 0) {
+            return res.status(400).send('No new images to generate GIF!');
+        }
+
+        // Move uploaded images to the uploads directory (you may skip this if files are already present)
+        uploadedImages.forEach(image => {
+            fs.copyFileSync(path.join('/temp/uploads', image), path.join(uploadsPath, image));
+        });
+
         // Get all image files (jpg and png)
         const files = fs.readdirSync(uploadsPath).filter(file => file.endsWith('.jpg') || file.endsWith('.png'));
 
