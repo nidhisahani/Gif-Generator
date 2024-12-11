@@ -40,11 +40,7 @@
     <div class="container">
         <h1>GIF Generator</h1>
 
-        <!-- Loader -->
-        <div id="loader-container">
-            <div class="loader"></div>
-            <p>Processing... Please wait</p>
-        </div>
+        
 
         <!-- Form for file upload -->
         <form id="upload-form" enctype="multipart/form-data">
@@ -62,6 +58,12 @@
             <button type="button" id="upload-btn" disabled>Upload Images</button>
         </form>
 
+        <!-- Loader -->
+        <div id="loader-container">
+            <div class="loader"></div>
+            <p>Gif is being generated</p>
+        </div>
+        
         <button id="generate-gif-btn" disabled>Generate GIF</button>
         <a id="download-link" style="display: none;" download="output.gif">Download GIF</a>
     </div>
@@ -129,7 +131,7 @@
                     formData.append('images', dataURLtoFile(capturedImage.src, 'captured-image.png'));
                 }
 
-                showLoader(); // Show loader during upload
+                // showLoader(); // Show loader during upload
 
                 try {
                     const response = await fetch('/api/upload-images', { method: 'POST', body: formData });
