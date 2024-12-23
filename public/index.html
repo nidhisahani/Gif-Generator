@@ -7,7 +7,6 @@
     <title>Upload and Capture Images</title>
     <link rel="stylesheet" href="styles.css">
     <style>
-        /* Loader styles */
         .loader {
             border: 8px solid #f3f3f3;
             border-top: 8px solid #3498db;
@@ -33,6 +32,40 @@
             display: none;
             text-align: center;
         }
+
+        #review-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .review-item {
+            position: relative;
+            display: inline-block;
+        }
+
+        .review-item img {
+            max-width: 150px;
+            max-height: 150px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+
+        .remove-btn {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            color: black;
+            border: none;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+            font-size: 14px;
+            line-height: 20px;
+            text-align: center;
+        }
     </style>
 </head>
 
@@ -40,30 +73,31 @@
     <div class="container">
         <h1>GIF Generator</h1>
 
-        
-
-        <!-- Form for file upload -->
         <form id="upload-form" enctype="multipart/form-data">
-            <label for="file-input">Choose Images:</label>
-            <input type="file" id="file-input" name="images" multiple accept=".png, .jpg, .jpeg">
+            <div id="sub-container">
+                <div id="file-container">
+                    <label for="file-input">Choose Images:</label><br>
+                    <input type="file" id="file-input" name="images" multiple accept=".png, .jpg, .jpeg">
+                </div>
 
-            <div id="capture-container">
-                <label>Capture Image:</label>
-                <video id="video" autoplay muted></video>
-                <button type="button" id="capture-btn">Capture</button>
-                <canvas id="canvas" hidden></canvas>
-                <img id="captured-image" hidden />
+                <div id="capture-container">
+                    <label>Capture Image:</label>
+                    <video id="video" autoplay muted></video>
+                    <button type="button" id="capture-btn">Capture</button>
+                    <canvas id="canvas" hidden></canvas>
+                </div>
             </div>
+
+            <div id="review-container"></div>
 
             <button type="button" id="upload-btn" disabled>Upload Images</button>
         </form>
 
-        <!-- Loader -->
         <div id="loader-container">
             <div class="loader"></div>
             <p>Gif is being generated</p>
         </div>
-        
+
         <button id="generate-gif-btn" disabled>Generate GIF</button>
         <a id="download-link" style="display: none;" download="output.gif">Download GIF</a>
     </div>
@@ -76,21 +110,20 @@
             const captureBtn = document.getElementById('capture-btn');
             const videoElement = document.getElementById('video');
             const canvasElement = document.getElementById('canvas');
-            const capturedImage = document.getElementById('captured-image');
+            const reviewContainer = document.getElementById('review-container');
             const downloadLink = document.getElementById('download-link');
             const loaderContainer = document.getElementById('loader-container');
 
-            // Show loader
+            const images = []; // Store all images (files and captured images)
+
             const showLoader = () => {
                 loaderContainer.style.display = 'block';
             };
 
-            // Hide loader
             const hideLoader = () => {
                 loaderContainer.style.display = 'none';
             };
 
-            // Initialize webcam
             const startVideo = async () => {
                 try {
                     const stream = await navigator.mediaDevices.getUserMedia({ video: true });
@@ -100,39 +133,55 @@
                 }
             };
 
-            // Enable upload button if files are selected
+            const updateReviewContainer = () => {
+                reviewContainer.innerHTML = '';
+                images.forEach((image, index) => {
+                    const item = document.createElement('div');
+                    item.classList.add('review-item');
+
+                    const img = document.createElement('img');
+                    img.src = image.preview;
+                    item.appendChild(img);
+
+                    const removeBtn = document.createElement('button');
+                    removeBtn.classList.add('remove-btn');
+                    removeBtn.textContent = 'x';
+                    removeBtn.style.backgroundColor='transparent'
+                    removeBtn.addEventListener('click', () => {
+                        images.splice(index, 1);
+                        updateReviewContainer();
+                        uploadBtn.disabled = images.length === 0;
+                    });
+                    item.appendChild(removeBtn);
+
+                    reviewContainer.appendChild(item);
+                });
+            };
+
             fileInput.addEventListener('change', () => {
-                uploadBtn.disabled = !fileInput.files.length;
+                Array.from(fileInput.files).forEach(file => {
+                    images.push({ file, preview: URL.createObjectURL(file) });
+                });
+                updateReviewContainer();
+                uploadBtn.disabled = images.length === 0;
             });
 
-            // Capture an image from the webcam
             captureBtn.addEventListener('click', () => {
                 const context = canvasElement.getContext('2d');
                 canvasElement.width = videoElement.videoWidth;
                 canvasElement.height = videoElement.videoHeight;
-
-                // Draw video frame to canvas
                 context.drawImage(videoElement, 0, 0);
-                capturedImage.src = canvasElement.toDataURL('image/png');
-                capturedImage.hidden = false;
-
-                uploadBtn.disabled = false;
+                const dataUrl = canvasElement.toDataURL('image/png');
+                images.push({ file: dataURLtoFile(dataUrl, `captured-${Date.now()}.png`), preview: dataUrl });
+                updateReviewContainer();
+                uploadBtn.disabled = images.length === 0;
             });
 
-            // Upload images (including captured ones) to the server
             uploadBtn.addEventListener('click', async () => {
                 const formData = new FormData();
+                images.forEach(image => formData.append('images', image.file));
 
-                for (const file of fileInput.files) {
-                    formData.append('images', file);
-                }
-
-                if (!capturedImage.hidden) {
-                    formData.append('images', dataURLtoFile(capturedImage.src, 'captured-image.png'));
-                }
-
-                // showLoader(); // Show loader during upload
-
+                showLoader();
                 try {
                     const response = await fetch('/api/upload-images', { method: 'POST', body: formData });
                     if (response.ok) {
@@ -144,13 +193,12 @@
                 } catch (error) {
                     alert('Upload error: ' + error.message);
                 } finally {
-                    hideLoader(); // Hide loader after upload
+                    hideLoader();
                 }
             });
 
-            // Generate GIF from uploaded images
             generateGifBtn.addEventListener('click', async () => {
-                showLoader(); // Show loader during GIF generation
+                showLoader();
                 try {
                     const response = await fetch('/api/generate-gif');
                     if (response.ok) {
@@ -164,11 +212,10 @@
                 } catch (error) {
                     alert('GIF generation error: ' + error.message);
                 } finally {
-                    hideLoader(); // Hide loader after processing
+                    hideLoader();
                 }
             });
 
-            // Convert Data URL to a File object
             const dataURLtoFile = (dataURL, filename) => {
                 const [header, base64] = dataURL.split(',');
                 const mime = header.match(/:(.*?);/)[1];
@@ -180,7 +227,6 @@
                 return new File([array], filename, { type: mime });
             };
 
-            // Start video stream on page load
             startVideo();
         });
     </script>

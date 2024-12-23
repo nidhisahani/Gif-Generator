@@ -58,7 +58,7 @@ app.post('/api/upload-images', upload.array('images'), (req, res) => {
 
             res.status(200).send('Images uploaded successfully!');
         } else {
-            res.status(400).send('No files uploaded!');
+            res.status(400).send(`${(req.files).length} file uploaded!, Please add ${2-(req.files.length)} more files`);
         }
     } catch (error) {
         console.error('Error during file upload:', error.message);
