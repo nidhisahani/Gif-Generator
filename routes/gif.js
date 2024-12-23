@@ -3,7 +3,7 @@ const GifEncoder = require('gifencoder');
 const { createCanvas, loadImage } = require('canvas');
 const fs = require('fs');
 const path = require('path');
-const sharp = require('sharp'); // Added for image resizing and optimization
+const sharp = require('sharp');
 
 const router = express.Router();
 
@@ -13,12 +13,25 @@ const preloadAndOptimizeImages = async (files, uploadsPath, width, height) => {
         files.map(async (file) => {
             const imagePath = path.join(uploadsPath, file);
             const buffer = await sharp(imagePath)
-                .resize(width, height) // Resize to target dimensions
-                .toBuffer(); // Convert to buffer
-            const optimizedImage = await loadImage(buffer); // Load optimized image
+                .resize(width, height)
+                .toBuffer();
+            const optimizedImage = await loadImage(buffer);
             return { file, optimizedImage };
         })
     );
+};
+
+// Function to delete all files from a directory
+const deleteAllFiles = (directoryPath) => {
+    try {
+        const files = fs.readdirSync(directoryPath);
+        for (const file of files) {
+            fs.unlinkSync(path.join(directoryPath, file));
+        }
+        console.log('All files deleted successfully.');
+    } catch (error) {
+        console.error('Error deleting files:', error.message);
+    }
 };
 
 // Route for generating GIF
@@ -82,7 +95,7 @@ router.get('/generate-gif', async (req, res) => {
         stream.on('close', () => {
             res.json({
                 message: 'GIF generated successfully!',
-                downloadPath: '/uploads/output.gif',
+                // downloadPath: '/uploads/output.gif',
             });
         });
 
@@ -94,6 +107,28 @@ router.get('/generate-gif', async (req, res) => {
         console.error('Error:', error.message);
         res.status(500).send('Error during GIF generation');
     }
+});
+
+// Route for downloading GIF and cleaning up files
+router.get('/download-gif', (req, res) => {
+    const uploadsPath = path.join(__dirname, '../public/uploads');
+    const outputPath = path.join(uploadsPath, 'output.gif');
+
+    // Check if the GIF exists
+    if (!fs.existsSync(outputPath)) {
+        return res.status(404).send('GIF not found!');
+    }
+
+    // Send the GIF to the client
+    res.download(outputPath, 'output.gif', (err) => {
+        if (err) {
+            console.error('Error during download:', err.message);
+            return;
+        }
+
+        // After download completes, delete all files
+        deleteAllFiles(uploadsPath);
+    });
 });
 
 module.exports = router;

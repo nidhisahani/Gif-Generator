@@ -1,235 +1,268 @@
 <!DOCTYPE html>
 <html lang="en">
-
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Upload and Capture Images</title>
-    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="styles.css" />
     <style>
-        .loader {
-            border: 8px solid #f3f3f3;
-            border-top: 8px solid #3498db;
-            border-radius: 50%;
-            width: 50px;
-            height: 50px;
-            animation: spin 1s linear infinite;
-            display: none;
-            margin: 20px auto;
+      .loader {
+        border: 8px solid #f3f3f3;
+        border-top: 8px solid #3498db;
+        border-radius: 50%;
+        width: 50px;
+        height: 50px;
+        animation: spin 1s linear infinite;
+        display: none;
+        margin: 20px auto;
+      }
+
+      @keyframes spin {
+        0% {
+          transform: rotate(0deg);
         }
 
-        @keyframes spin {
-            0% {
-                transform: rotate(0deg);
-            }
-
-            100% {
-                transform: rotate(360deg);
-            }
+        100% {
+          transform: rotate(360deg);
         }
+      }
 
-        #loader-container {
-            display: none;
-            text-align: center;
-        }
+      #loader-container {
+        display: none;
+        text-align: center;
+      }
 
-        #review-container {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-            margin-top: 20px;
-        }
+      #review-container {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 20px;
+      }
 
-        .review-item {
-            position: relative;
-            display: inline-block;
-        }
+      .review-item {
+        position: relative;
+        display: inline-block;
+      }
 
-        .review-item img {
-            max-width: 150px;
-            max-height: 150px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-        }
+      .review-item img {
+        max-width: 150px;
+        max-height: 150px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+      }
 
-        .remove-btn {
-            position: absolute;
-            top: 5px;
-            right: 5px;
-            color: black;
-            border: none;
-            border-radius: 50%;
-            width: 20px;
-            height: 20px;
-            cursor: pointer;
-            font-size: 14px;
-            line-height: 20px;
-            text-align: center;
-        }
+      .remove-btn {
+        position: absolute;
+        top: 5px;
+        right: 5px;
+        color: black;
+        border: none;
+        border-radius: 50%;
+        width: 20px;
+        height: 20px;
+        cursor: pointer;
+        font-size: 14px;
+        line-height: 20px;
+        text-align: center;
+      }
     </style>
-</head>
+  </head>
 
-<body>
+  <body>
     <div class="container">
-        <h1>GIF Generator</h1>
+      <h1>GIF Generator</h1>
 
-        <form id="upload-form" enctype="multipart/form-data">
-            <div id="sub-container">
-                <div id="file-container">
-                    <label for="file-input">Choose Images:</label><br>
-                    <input type="file" id="file-input" name="images" multiple accept=".png, .jpg, .jpeg">
-                </div>
+      <form id="upload-form" enctype="multipart/form-data">
+        <div id="sub-container">
+          <div id="file-container">
+            <label for="file-input">Choose Images:</label><br />
+            <input
+              type="file"
+              id="file-input"
+              name="images"
+              multiple
+              accept=".png, .jpg, .jpeg"
+            />
+          </div>
 
-                <div id="capture-container">
-                    <label>Capture Image:</label>
-                    <video id="video" autoplay muted></video>
-                    <button type="button" id="capture-btn">Capture</button>
-                    <canvas id="canvas" hidden></canvas>
-                </div>
-            </div>
-
-            <div id="review-container"></div>
-
-            <button type="button" id="upload-btn" disabled>Upload Images</button>
-        </form>
-
-        <div id="loader-container">
-            <div class="loader"></div>
-            <p>Gif is being generated</p>
+          <div id="capture-container">
+            <label>Capture Image:</label>
+            <video id="video" autoplay muted></video>
+            <button type="button" id="capture-btn">Capture</button>
+            <canvas id="canvas" hidden></canvas>
+          </div>
         </div>
 
-        <button id="generate-gif-btn" disabled>Generate GIF</button>
-        <a id="download-link" style="display: none;" download="output.gif">Download GIF</a>
+        <div id="review-container"></div>
+
+        <button type="button" id="upload-btn" disabled>Upload Images</button>
+      </form>
+
+      <div id="loader-container">
+        <div class="loader"></div>
+        <p>Gif is being generated</p>
+      </div>
+
+      <button id="generate-gif-btn" disabled>Generate GIF</button>
+      <a id="download-link" style="display: none" download="output.gif"
+        >Download GIF</a
+      >
     </div>
 
     <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const fileInput = document.getElementById('file-input');
-            const uploadBtn = document.getElementById('upload-btn');
-            const generateGifBtn = document.getElementById('generate-gif-btn');
-            const captureBtn = document.getElementById('capture-btn');
-            const videoElement = document.getElementById('video');
-            const canvasElement = document.getElementById('canvas');
-            const reviewContainer = document.getElementById('review-container');
-            const downloadLink = document.getElementById('download-link');
-            const loaderContainer = document.getElementById('loader-container');
+      document.addEventListener("DOMContentLoaded", () => {
+        const fileInput = document.getElementById("file-input");
+        const uploadBtn = document.getElementById("upload-btn");
+        const generateGifBtn = document.getElementById("generate-gif-btn");
+        const captureBtn = document.getElementById("capture-btn");
+        const videoElement = document.getElementById("video");
+        const canvasElement = document.getElementById("canvas");
+        const reviewContainer = document.getElementById("review-container");
+        const downloadLink = document.getElementById("download-link");
+        const loaderContainer = document.getElementById("loader-container");
 
-            const images = []; // Store all images (files and captured images)
+        const images = []; // Store all images (files and captured images)
 
-            const showLoader = () => {
-                loaderContainer.style.display = 'block';
-            };
+        const showLoader = () => {
+          loaderContainer.style.display = "block";
+        };
 
-            const hideLoader = () => {
-                loaderContainer.style.display = 'none';
-            };
+        const hideLoader = () => {
+          loaderContainer.style.display = "none";
+        };
 
-            const startVideo = async () => {
-                try {
-                    const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-                    videoElement.srcObject = stream;
-                } catch (error) {
-                    alert('Webcam access error: ' + error.message);
-                }
-            };
-
-            const updateReviewContainer = () => {
-                reviewContainer.innerHTML = '';
-                images.forEach((image, index) => {
-                    const item = document.createElement('div');
-                    item.classList.add('review-item');
-
-                    const img = document.createElement('img');
-                    img.src = image.preview;
-                    item.appendChild(img);
-
-                    const removeBtn = document.createElement('button');
-                    removeBtn.classList.add('remove-btn');
-                    removeBtn.textContent = 'x';
-                    removeBtn.style.backgroundColor='transparent'
-                    removeBtn.addEventListener('click', () => {
-                        images.splice(index, 1);
-                        updateReviewContainer();
-                        uploadBtn.disabled = images.length === 0;
-                    });
-                    item.appendChild(removeBtn);
-
-                    reviewContainer.appendChild(item);
-                });
-            };
-
-            fileInput.addEventListener('change', () => {
-                Array.from(fileInput.files).forEach(file => {
-                    images.push({ file, preview: URL.createObjectURL(file) });
-                });
-                updateReviewContainer();
-                uploadBtn.disabled = images.length === 0;
+        const startVideo = async () => {
+          try {
+            const stream = await navigator.mediaDevices.getUserMedia({
+              video: true,
             });
+            videoElement.srcObject = stream;
+          } catch (error) {
+            alert("Webcam access error: " + error.message);
+          }
+        };
 
-            captureBtn.addEventListener('click', () => {
-                const context = canvasElement.getContext('2d');
-                canvasElement.width = videoElement.videoWidth;
-                canvasElement.height = videoElement.videoHeight;
-                context.drawImage(videoElement, 0, 0);
-                const dataUrl = canvasElement.toDataURL('image/png');
-                images.push({ file: dataURLtoFile(dataUrl, `captured-${Date.now()}.png`), preview: dataUrl });
-                updateReviewContainer();
-                uploadBtn.disabled = images.length === 0;
+        const updateReviewContainer = () => {
+          reviewContainer.innerHTML = "";
+          images.forEach((image, index) => {
+            const item = document.createElement("div");
+            item.classList.add("review-item");
+
+            const img = document.createElement("img");
+            img.src = image.preview;
+            item.appendChild(img);
+
+            const removeBtn = document.createElement("button");
+            removeBtn.classList.add("remove-btn");
+            removeBtn.textContent = "x";
+            removeBtn.style.backgroundColor = "transparent";
+            removeBtn.addEventListener("click", () => {
+              images.splice(index, 1);
+              updateReviewContainer();
+              uploadBtn.disabled = images.length === 0;
             });
+            item.appendChild(removeBtn);
 
-            uploadBtn.addEventListener('click', async () => {
-                const formData = new FormData();
-                images.forEach(image => formData.append('images', image.file));
+            reviewContainer.appendChild(item);
+          });
+        };
 
-                showLoader();
-                try {
-                    const response = await fetch('/api/upload-images', { method: 'POST', body: formData });
-                    if (response.ok) {
-                        alert('Images uploaded successfully!');
-                        generateGifBtn.disabled = false;
-                    } else {
-                        throw new Error(await response.text());
-                    }
-                } catch (error) {
-                    alert('Upload error: ' + error.message);
-                } finally {
-                    hideLoader();
-                }
-            });
-
-            generateGifBtn.addEventListener('click', async () => {
-                showLoader();
-                try {
-                    const response = await fetch('/api/generate-gif');
-                    if (response.ok) {
-                        const { message, downloadPath } = await response.json();
-                        alert(message);
-                        downloadLink.href = downloadPath;
-                        downloadLink.style.display = 'inline';
-                    } else {
-                        throw new Error(await response.text());
-                    }
-                } catch (error) {
-                    alert('GIF generation error: ' + error.message);
-                } finally {
-                    hideLoader();
-                }
-            });
-
-            const dataURLtoFile = (dataURL, filename) => {
-                const [header, base64] = dataURL.split(',');
-                const mime = header.match(/:(.*?);/)[1];
-                const binary = atob(base64);
-                const array = new Uint8Array(binary.length);
-                for (let i = 0; i < binary.length; i++) {
-                    array[i] = binary.charCodeAt(i);
-                }
-                return new File([array], filename, { type: mime });
-            };
-
-            startVideo();
+        fileInput.addEventListener("change", () => {
+          Array.from(fileInput.files).forEach((file) => {
+            images.push({ file, preview: URL.createObjectURL(file) });
+          });
+          updateReviewContainer();
+          uploadBtn.disabled = images.length === 0;
         });
-    </script>
-</body>
 
+        captureBtn.addEventListener("click", () => {
+          const context = canvasElement.getContext("2d");
+          canvasElement.width = videoElement.videoWidth;
+          canvasElement.height = videoElement.videoHeight;
+          context.drawImage(videoElement, 0, 0);
+          const dataUrl = canvasElement.toDataURL("image/png");
+          images.push({
+            file: dataURLtoFile(dataUrl, `captured-${Date.now()}.png`),
+            preview: dataUrl,
+          });
+          updateReviewContainer();
+          uploadBtn.disabled = images.length === 0;
+        });
+
+        uploadBtn.addEventListener("click", async () => {
+          const formData = new FormData();
+          images.forEach((image) => formData.append("images", image.file));
+
+          showLoader();
+          try {
+            const response = await fetch("/api/upload-images", {
+              method: "POST",
+              body: formData,
+            });
+            if (response.ok) {
+              alert("Images uploaded successfully!");
+              generateGifBtn.disabled = false;
+            } else {
+              throw new Error(await response.text());
+            }
+          } catch (error) {
+            alert("Upload error: " + error.message);
+          } finally {
+            hideLoader();
+          }
+        });
+
+        generateGifBtn.addEventListener("click", async () => {
+          showLoader();
+          try {
+            // Call the generate GIF endpoint
+            const response = await fetch("/api/generate-gif");
+            if (response.ok) {
+              const { message, downloadPath } = await response.json();
+              alert(message);
+              
+            } else {
+              throw new Error(await response.text());
+            }
+          } catch (error) {
+            alert("GIF generation or download error: " + error.message);
+          } finally {
+            hideLoader();
+            downloadLink.style.display='block'
+          }
+        });
+
+        downloadLink.addEventListener('click',async ()=>{
+            const downloadResponse = await fetch("/api/download-gif");
+              if (downloadResponse.ok) {
+                const blob = await downloadResponse.blob(); // Get the file as a Blob
+                const url = URL.createObjectURL(blob); // Create an object URL for the file
+
+                // Set up the download link and simulate a click
+                downloadLink.href = url;
+                downloadLink.download = "output.gif"; // Set the filename for download
+                downloadLink.style.display = "inline";
+                downloadLink.click(); // Simulate a click to start download
+
+                URL.revokeObjectURL(url); // Clean up the object URL
+              } else {
+                throw new Error(await downloadResponse.text());
+              }
+        })
+
+        const dataURLtoFile = (dataURL, filename) => {
+          const [header, base64] = dataURL.split(",");
+          const mime = header.match(/:(.*?);/)[1];
+          const binary = atob(base64);
+          const array = new Uint8Array(binary.length);
+          for (let i = 0; i < binary.length; i++) {
+            array[i] = binary.charCodeAt(i);
+          }
+          return new File([array], filename, { type: mime });
+        };
+
+        startVideo();
+      });
+    </script>
+  </body>
 </html>

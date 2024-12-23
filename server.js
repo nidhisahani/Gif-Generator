@@ -46,7 +46,7 @@ app.post('/api/upload-images', upload.array('images'), (req, res) => {
         }
 
         // Process the uploaded files
-        if (req.files && req.files.length > 0) {
+        if (req.files && req.files.length > 1) {
             req.files.forEach(file => {
                 const tempPath = file.path;
                 const targetPath = path.join(uploadsPath, file.originalname);
