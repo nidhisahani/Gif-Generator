@@ -103,7 +103,7 @@
         <p>Gif is being generated</p>
       </div>
 
-      <button id="generate-gif-btn" disabled>Generate GIF</button>
+      <button id="generate-gif-btn" style="display: none;">Generate GIF</button>
       <a id="download-link" style="display: none" download="output.gif"
         >Download GIF</a
       >
@@ -201,7 +201,7 @@
             });
             if (response.ok) {
               alert("Images uploaded successfully!");
-              generateGifBtn.disabled = false;
+              generateGifBtn.style.display = 'block';
             } else {
               throw new Error(await response.text());
             }
