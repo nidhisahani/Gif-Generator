@@ -245,6 +245,11 @@
                 downloadLink.click(); // Simulate a click to start download
 
                 URL.revokeObjectURL(url); // Clean up the object URL
+                uploadBtn.disabled=true
+                generateGifBtn.style.display='none';
+                downloadLink.style.display='none';
+                images.length=0;
+                updateReviewContainer()
               } else {
                 throw new Error(await downloadResponse.text());
               }
